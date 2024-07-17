@@ -26,9 +26,10 @@ class visionCheckCamera extends StatefulWidget {
   _CameraScreenState createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<visionCheckCamera> {
-  late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
+class _CameraScreenState extends State<visionCheckCamera>
+    with WidgetsBindingObserver {
+  late CameraController? _controller;
+  late Future<void>? _initializeControllerFuture;
   bool _isTakingPicture = false;
 
   final VISION.visionGrammarApiService _apiService =
@@ -118,12 +119,16 @@ class _CameraScreenState extends State<visionCheckCamera> {
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addObserver(this);
+
     _controller = CameraController(
       widget.firstCamera,
       ResolutionPreset.high,
       enableAudio: false,
     );
-    _initializeControllerFuture = _controller.initialize().then((_) {
+
+    _initializeControllerFuture = _controller!.initialize().then((_) {
       if (!mounted) {
         return;
       }
@@ -133,8 +138,37 @@ class _CameraScreenState extends State<visionCheckCamera> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _controller!.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_controller == null || !_controller!.value.isInitialized) {
+      return;
+    }
+    if (state == AppLifecycleState.inactive) {
+      _controller?.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _initCamera();
+    }
+  }
+
+  Future<void> _initCamera() async {
+    final cameras = await availableCameras();
+    final firstCamera = cameras.first;
+
+    _controller = CameraController(
+      firstCamera,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+
+    _initializeControllerFuture = _controller?.initialize();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -151,7 +185,7 @@ class _CameraScreenState extends State<visionCheckCamera> {
               future: _initializeControllerFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
-                  return CameraPreview(_controller);
+                  return CameraPreview(_controller!);
                 } else {
                   return Center(child: CircularProgressIndicator());
                 }
@@ -186,7 +220,7 @@ class _CameraScreenState extends State<visionCheckCamera> {
                       DateTime sDate = DateTime.now();
                       // Duration difference = secondTime.difference(firstTime);
 
-                      final image = await _controller.takePicture();
+                      final image = await _controller!.takePicture();
 
                       final bytes = await image.readAsBytes();
                       final base64String = base64Encode(bytes);

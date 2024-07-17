@@ -13,13 +13,14 @@ import '../constants/visionConstants.dart';
 class visionGrammarApiService {
   final DEVICE.deviceInfoService _device = DEVICE.deviceInfoService();
 
-  final _googleApiKey = "";
+  final _googleApiKey = "AIzaSyD3CkcyzzXBdukMAzlTkcj556dcFYgqoAM";
   static const String _firestoreUrl = "https://vision-427210.as.r.appspot.com";
   static const String _visionUrl =
       "https://vision.googleapis.com/v1/images:annotate?key=";
 
   Future<ApiResponse> checkDevice() async {
     try {
+      print("@@@ checkDevice");
       Future<String> deviceId = _device.getDeviceId();
       User? user = User.checkDevice(await deviceId);
 
